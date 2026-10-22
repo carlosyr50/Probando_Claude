@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Área y Perímetro</title>
+<style>
+  :root {
+    --azul: #1d5fd1;
+    --azul-osc: #16489e;
+    --azul-claro: #eaf1fd;
+    --borde: #d9e2f1;
+    --texto: #1f2a3c;
+    --tenue: #6b7a90;
+    --fondo: #ffffff;
+    --error: #c62828;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--texto);
+    background: var(--fondo);
+    line-height: 1.5;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; font-weight: 600; color: var(--azul-osc); }
+  .sub { margin: 0 0 28px; color: var(--tenue); font-size: .95rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--borde); border-radius: 10px; padding: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  button {
+    font: inherit; font-size: .88rem; cursor: pointer;
+    border: 1px solid var(--azul); background: #fff; color: var(--azul);
+    padding: 6px 12px; border-radius: 6px;
+  }
+  button:hover { background: var(--azul-claro); }
+  button.primario { background: var(--azul); color: #fff; }
+  button.primario:hover { background: var(--azul-osc); }
+  .tabla-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--borde); border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { border-bottom: 1px solid var(--borde); padding: 0; text-align: left; }
+  th {
+    position: sticky; top: 0; background: var(--azul-claro);
+    color: var(--azul-osc); font-weight: 600; padding: 8px 10px;
+  }
+  td.n { width: 44px; text-align: center; color: var(--tenue); padding: 0 6px; }
+  td.x { width: 36px; text-align: center; }
+  td input {
+    width: 100%; border: 0; padding: 8px 10px; font: inherit;
+    font-variant-numeric: tabular-nums; background: transparent; color: var(--texto);
+  }
+  td input:focus { outline: 2px solid var(--azul); outline-offset: -2px; background: #fff; }
+  td input.invalido { color: var(--error); background: #fdecec; }
+  .borrar { border: 0; color: var(--tenue); padding: 4px 8px; background: none; }
+  .borrar:hover { color: var(--error); background: none; }
+  .ayuda { font-size: .82rem; color: var(--tenue); margin: 10px 0 0; }
+  .resultados { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .dato { background: var(--azul-claro); border-radius: 8px; padding: 12px 14px; }
+  .dato .etq { font-size: .78rem; color: var(--tenue); text-transform: uppercase; letter-spacing: .04em; }
+  .dato .val { font-size: 1.35rem; font-weight: 600; color: var(--azul-osc); font-variant-numeric: tabular-nums; }
+  .dato .sec { font-size: .82rem; color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .opciones { display: flex; align-items: center; gap: 8px; font-size: .88rem; margin-bottom: 12px; color: var(--tenue); }
+  select { font: inherit; padding: 4px 6px; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); }
+  svg { width: 100%; height: 260px; border: 1px solid var(--borde); border-radius: 6px; background: #fbfcff; }
+  .msg { font-size: .85rem; color: var(--error); min-height: 1.2em; margin: 8px 0 0; }
+  details { margin-top: 14px; font-size: .88rem; }
+  summary { cursor: pointer; color: var(--azul); }
+  #lados td { padding: 6px 10px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Área y perímetro por coordenadas</h1>
+  <p class="sub">Pega tus coordenadas Este / Norte (por ejemplo, copiadas desde Excel) y obtén el área y el perímetro del polígono.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Vértices</h2>
+      <div class="toolbar">
+        <button id="btnAgregar">+ Fila</button>
+        <button id="btnPegar">Pegar del portapapeles</button>
+        <button id="btnEjemplo">Ejemplo</button>
+        <button id="btnLimpiar">Limpiar</button>
+      </div>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Este (X)</th><th>Norte (Y)</th><th></th></tr></thead>
+          <tbody id="cuerpo"></tbody>
+        </table>
+      </div>
+      <p class="ayuda">Haz clic en cualquier celda y pega (Ctrl+V) varias filas a la vez. Se aceptan columnas separadas por tabulador, punto y coma, comas o espacios, y decimales con punto o coma. Si pegas 3 columnas, la primera se toma como nombre del punto.</p>
+      <p class="msg" id="msg"></p>
+    </section>
+
+    <section class="card">
+      <h2>Resultados</h2>
+      <div class="opciones">
+        <label for="decimales">Decimales:</label>
+        <select id="decimales"><option>2</option><option selected>3</option><option>4</option></select>
+      </div>
+      <div class="resultados">
+        <div class="dato">
+          <div class="etq">Área</div>
+          <div class="val" id="area">—</div>
+          <div class="sec" id="areaHa"></div>
+        </div>
+        <div class="dato">
+          <div class="etq">Perímetro</div>
+          <div class="val" id="perimetro">—</div>
+          <div class="sec" id="nVert"></div>
+        </div>
+      </div>
+      <svg id="dibujo" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+      <details>
+        <summary>Longitud de cada lado</summary>
+        <table id="lados"></table>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
+(function () {
+  var cuerpo = document.getElementById('cuerpo');
+  var msg = document.getElementById('msg');
+  var selDec = document.getElementById('decimales');
+
+  function parseNum(s) {
+    s = String(s).trim().replace(/\s/g, '');
+    if (s === '') return null;
+    if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
+      // El separador que aparece al final es el decimal
+      if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+      else s = s.replace(/,/g, '');
+    } else if (s.indexOf(',') >= 0) {
+      s = s.replace(',', '.');
+    }
+    var n = Number(s);
+    return isFinite(n) ? n : NaN;
+  }
+
+  function separarLinea(linea) {
+    var partes;
+    if (/[\t;]/.test(linea)) partes = linea.split(/[\t;]+/);
+    else if (/\s/.test(linea.trim())) partes = linea.trim().split(/\s+/);
+    else partes = linea.split(',');
+    return partes.map(function (p) { return p.trim(); }).filter(function (p) { return p !== ''; });
+  }
+
+  function crearFila(e, n) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="n"></td>' +
+      '<td><input inputmode="decimal" autocomplete="off"></td>' +
+      '<td><input inputmode="decimal" autocomplete="off"></td>' +
+      '<td class="x"><button class="borrar" title="Eliminar fila">×</button></td>';
+    var ins = tr.querySelectorAll('input');
+    ins[0].value = e == null ? '' : e;
+    ins[1].value = n == null ? '' : n;
+    return tr;
+  }
+
+  function agregarFila(e, n, antesDe) {
+    var tr = crearFila(e, n);
+    cuerpo.insertBefore(tr, antesDe || null);
+    return tr;
+  }
+
+  function asegurarFilasVacias() {
+    var filas = cuerpo.rows;
+    var ultima = filas[filas.length - 1];
+    if (!ultima || ultima.querySelectorAll('input')[0].value !== '' || ultima.querySelectorAll('input')[1].value !== '') {
+      agregarFila();
+    }
+    numerar();
+  }
+
+  function numerar() {
+    for (var i = 0; i < cuerpo.rows.length; i++) cuerpo.rows[i].cells[0].textContent = i + 1;
+  }
+
+  function pegarTexto(texto, filaInicio) {
+    var lineas = texto.replace(/\r/g, '').split('\n').filter(function (l) { return l.trim() !== ''; });
+    var datos = [];
+    lineas.forEach(function (l) {
+      var p = separarLinea(l);
+      if (p.length >= 3) p = p.slice(1, 3); // descarta nombre del punto
+      if (p.length >= 2) {
+        var e = parseNum(p[0]), n = parseNum(p[1]);
+        if (!(isNaN(e) || isNaN(n))) datos.push([p[0], p[1]]);
+      }
+    });
+    if (!datos.length) { msg.textContent = 'No se reconocieron coordenadas en el texto pegado.'; return; }
+    msg.textContent = '';
+    var fila = filaInicio;
+    datos.forEach(function (d) {
+      if (!fila) fila = agregarFila();
+      var ins = fila.querySelectorAll('input');
+      ins[0].value = d[0]; ins[1].value = d[1];
+      fila = fila.nextElementSibling;
+    });
+    asegurarFilasVacias();
+    calcular();
+  }
+
+  cuerpo.addEventListener('paste', function (ev) {
+    var t = (ev.clipboardData || window.clipboardData).getData('text');
+    // Si es un único valor, se deja el pegado normal
+    if (!/[\n\t;]/.test(t.trim()) && separarLinea(t).length < 2) return;
+    ev.preventDefault();
+    pegarTexto(t, ev.target.closest('tr'));
+  });
+
+  cuerpo.addEventListener('input', function () { asegurarFilasVacias(); calcular(); });
+
+  cuerpo.addEventListener('click', function (ev) {
+    if (ev.target.classList.contains('borrar')) {
+      ev.target.closest('tr').remove();
+      asegurarFilasVacias();
+      calcular();
+    }
+  });
+
+  cuerpo.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' || ev.target.tagName !== 'INPUT') return;
+    ev.preventDefault();
+    var td = ev.target.parentNode, col = td.cellIndex;
+    var sig = td.parentNode.nextElementSibling || agregarFila();
+    numerar();
+    sig.cells[col].querySelector('input').focus();
+  });
+
+  document.getElementById('btnAgregar').onclick = function () { agregarFila(); numerar(); };
+  document.getElementById('btnLimpiar').onclick = function () {
+    cuerpo.innerHTML = ''; msg.textContent = ''; asegurarFilasVacias(); calcular();
+  };
+  document.getElementById('btnEjemplo').onclick = function () {
+    cuerpo.innerHTML = '';
+    pegarTexto('500000\t8500000\n500120.5\t8500010\n500150\t8500095.25\n500060\t8500130\n499990\t8500070', null);
+  };
+  document.getElementById('btnPegar').onclick = function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      msg.textContent = 'Tu navegador no permite leer el portapapeles aquí. Haz clic en una celda y usa Ctrl+V.';
+      return;
+    }
+    navigator.clipboard.readText().then(function (t) {
+      cuerpo.innerHTML = '';
+      pegarTexto(t, null);
+    }).catch(function () {
+      msg.textContent = 'No se pudo leer el portapapeles. Haz clic en una celda y usa Ctrl+V.';
+    });
+  };
+  selDec.onchange = calcular;
+
+  function fmt(n, d) {
+    return n.toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+  function leerPuntos() {
+    var pts = [], hayError = false;
+    Array.prototype.forEach.call(cuerpo.rows, function (tr) {
+      var ins = tr.querySelectorAll('input');
+      var e = parseNum(ins[0].value), n = parseNum(ins[1].value);
+      ins[0].classList.toggle('invalido', isNaN(e));
+      ins[1].classList.toggle('invalido', isNaN(n));
+      if (isNaN(e) || isNaN(n)) { hayError = true; return; }
+      if (e === null && n === null) return;
+      if (e === null || n === null) { hayError = true; return; }
+      pts.push([e, n]);
+    });
+    // Si el último punto repite el primero (polígono cerrado), se ignora
+    if (pts.length > 1) {
+      var a = pts[0], b = pts[pts.length - 1];
+      if (a[0] === b[0] && a[1] === b[1]) pts.pop();
+    }
+    return { pts: pts, error: hayError };
+  }
+
+  function calcular() {
+    var d = Number(selDec.value);
+    var r = leerPuntos(), pts = r.pts;
+    if (r.error) msg.textContent = 'Hay celdas incompletas o con valores no válidos (marcadas en rojo).';
+    else if (msg.textContent.indexOf('celdas') === 0) msg.textContent = '';
+
+    var areaEl = document.getElementById('area'), perEl = document.getElementById('perimetro');
+    var lados = document.getElementById('lados');
+    document.getElementById('nVert').textContent = pts.length ? pts.length + ' vértices' : '';
+
+    if (pts.length < 3) {
+      areaEl.textContent = '—';
+      document.getElementById('areaHa').textContent = 'Se necesitan al menos 3 vértices';
+      perEl.textContent = '—';
+      lados.innerHTML = '';
+      dibujar(pts);
+      return;
+    }
+
+    // Se restan el primer punto para mayor precisión con coordenadas grandes (UTM)
+    var x0 = pts[0][0], y0 = pts[0][1], suma = 0, per = 0, filas = '';
+    for (var i = 0; i < pts.length; i++) {
+      var j = (i + 1) % pts.length;
+      var xi = pts[i][0] - x0, yi = pts[i][1] - y0, xj = pts[j][0] - x0, yj = pts[j][1] - y0;
+      suma += xi * yj - xj * yi;
+      var l = Math.hypot(xj - xi, yj - yi);
+      per += l;
+      filas += '<tr><td>' + (i + 1) + ' → ' + (j + 1) + '</td><td>' + fmt(l, d) + ' m</td></tr>';
+    }
+    var area = Math.abs(suma) / 2;
+    areaEl.textContent = fmt(area, d) + ' m²';
+    document.getElementById('areaHa').textContent = fmt(area / 10000, 4) + ' ha';
+    perEl.textContent = fmt(per, d) + ' m';
+    lados.innerHTML = filas;
+    dibujar(pts);
+  }
+
+  function dibujar(pts) {
+    var svg = document.getElementById('dibujo');
+    if (!pts.length) { svg.innerHTML = ''; return; }
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    pts.forEach(function (p) {
+      minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+      minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]);
+    });
+    var w = Math.max(maxX - minX, 1e-9), h = Math.max(maxY - minY, 1e-9);
+    var esc = 90 / Math.max(w, h);
+    var ox = (100 - w * esc) / 2, oy = (100 - h * esc) / 2;
+    var coords = pts.map(function (p) {
+      return [ox + (p[0] - minX) * esc, 100 - (oy + (p[1] - minY) * esc)];
+    });
+    var poli = coords.map(function (c) { return c[0].toFixed(3) + ',' + c[1].toFixed(3); }).join(' ');
+    var html = pts.length >= 3
+      ? '<polygon points="' + poli + '" fill="rgba(29,95,209,.12)" stroke="#1d5fd1" stroke-width="0.6" stroke-linejoin="round"/>'
+      : '<polyline points="' + poli + '" fill="none" stroke="#1d5fd1" stroke-width="0.6"/>';
+    coords.forEach(function (c, i) {
+      html += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="1.1" fill="#fff" stroke="#16489e" stroke-width="0.5"/>' +
+        '<text x="' + (c[0] + 1.6) + '" y="' + (c[1] - 1.4) + '" font-size="3.2" fill="#16489e">' + (i + 1) + '</text>';
+    });
+    svg.innerHTML = html;
+  }
+
+  for (var k = 0; k < 5; k++) agregarFila();
+  numerar();
+  calcular();
+})();
+</script>
+</body>
+</html>
